@@ -143,15 +143,20 @@ if uploaded_file:
     try:
         st.info("Reading and cleaning data... Please wait.")
 
-        # raw = pd.read_excel(uploaded_file, sheet_name="Prices", header=0)
-        # raw.rename(columns={raw.columns[0]: "Date"}, inplace=True)
-        # raw["Date"] = pd.to_datetime(raw["Date"], errors="coerce")
-        # raw.set_index("Date", inplace=True)
+        # --- Allow user to pick any sheet from the uploaded workbook ---
+        excel_obj = pd.ExcelFile(uploaded_file)
+        sheet_names = excel_obj.sheet_names
 
-        # df_prices = raw.replace("-", np.nan).apply(pd.to_numeric, errors="coerce")
-        # df_prices = df_prices.dropna(axis=1, how="all")
+        # Default to "Prices" if it exists, otherwise first sheet
+        default_idx = sheet_names.index("Prices") if "Prices" in sheet_names else 0
+        selected_sheet = st.selectbox(
+            "Select the sheet to run the GARCH analysis on",
+            sheet_names,
+            index=default_idx,
+        )
 
-        raw = pd.read_excel(uploaded_file, sheet_name="Prices", header=0)
+        # Read the user-selected sheet instead of hard-coded "Prices"
+        raw = pd.read_excel(excel_obj, sheet_name=selected_sheet, header=0)
         raw.rename(columns={raw.columns[0]: "Date"}, inplace=True)
         raw["Date"] = pd.to_datetime(raw["Date"], errors="coerce")
         raw.set_index("Date", inplace=True)
@@ -272,10 +277,10 @@ if uploaded_file:
 
             save_fmt(df_prices, "Original_Prices")
             save_fmt(all_returns, "Returns_Scaled")
+            save_fmt(all_rsquare, "R_Squared")
+            save_fmt(all_sigma2, "GARCH")
             save_fmt(all_stdevs, "GARCH_Stdev")
             save_fmt(all_var_99, "GARCH_VaR")
-            save_fmt(all_rsquare, "R_Squared")
-            save_fmt(all_sigma2, "GARCH_Variance")
             pd.DataFrame(all_loglik).to_excel(writer, sheet_name="GARCH_LogLikelihood", index=False)
             pd.DataFrame(model_params).to_excel(writer, sheet_name="Model_Parameters", index=False)
 
